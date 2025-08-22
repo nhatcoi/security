@@ -158,14 +158,14 @@ spring.messages.encoding=UTF-8
 
 </details>
 
-## 🎯 Key Features
+## Key Features
 
-- ✅ **JWT Authentication**: Stateless authentication với JWT
-- ✅ **Refresh Token Rotation**: Tự động rotate refresh token
-- ✅ **Role-based Authorization**: Phân quyền theo USER/ADMIN
-- ✅ **Session Management**: Quản lý multiple sessions
-- ✅ **Centralized Error Handling**: Xử lý lỗi tập trung
-- ✅ **Internationalization**: Hỗ trợ đa ngôn ngữ
-- ✅ **Response Standardization**: Format response thống nhất
+- **JWT Authentication**: Stateless authentication với JWT
+- **Refresh Token Rotation**: Tự động rotate refresh token
+- **Role-based Authorization**: Phân quyền theo USER/ADMIN
+- **Session Management**: Quản lý multiple sessions
+- **Centralized Error Handling**: Xử lý lỗi tập trung
+- **Internationalization**: Hỗ trợ đa ngôn ngữ
+- **Response Standardization**: Format response thống nhất
 
 
