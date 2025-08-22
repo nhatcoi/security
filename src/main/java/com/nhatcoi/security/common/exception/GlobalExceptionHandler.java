@@ -1,5 +1,6 @@
 package com.nhatcoi.security.common.exception;
 
+import com.nhatcoi.security.common.dto.ResponseData;
 import com.nhatcoi.security.common.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,25 +26,22 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ErrorResponse> handleCustomException(CustomException ex) {
+    public ResponseEntity<ResponseData<Object>> handleCustomException(CustomException ex) {
         // Lấy message từ properties file
         String message = messageService.getMessage(ex.getErrorCode().getMessageKey(), ex.getArgs());
         
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(ex.getErrorCode().getHttpStatus().value())
-                .error(ex.getErrorCode().getHttpStatus().getReasonPhrase())
-                .message(message)
-                .errorCode(ex.getErrorCode().getErrorCode())
-                .code(ex.getErrorCode().getCode())
-                .build();
+        ResponseData<Object> responseData = ResponseData.error(
+            message,
+            ex.getErrorCode().getErrorCode(),
+            ex.getErrorCode().getCode()
+        );
         
         log.error("Custom exception: {} - {}", ex.getErrorCode().getErrorCode(), message);
-        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(errorResponse);
+        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(responseData);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ResponseData<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -59,77 +56,61 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error("Validation Error")
-                .message(messageService.getMessage("validation.error"))
-                .errorCode("VAL_001")
-                .code(3000)
-                .details(errors)
-                .build();
+        ResponseData<Object> responseData = ResponseData.error(
+            messageService.getMessage("validation.error"),
+            "VAL_001",
+            3000
+        ).setDetails(errors);
 
         log.error("Validation error: {}", errors);
-        return ResponseEntity.badRequest().body(errorResponse);
+        return ResponseEntity.badRequest().body(responseData);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .error("Authentication Error")
-                .message(messageService.getMessage("auth.invalid.credentials"))
-                .errorCode("AUTH_001")
-                .code(1000)
-                .build();
+    public ResponseEntity<ResponseData<Object>> handleBadCredentialsException(BadCredentialsException ex) {
+        ResponseData<Object> responseData = ResponseData.error(
+            messageService.getMessage("auth.invalid.credentials"),
+            "AUTH_001",
+            1000
+        );
 
         log.error("Authentication error: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(responseData);
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(UsernameNotFoundException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .error("User Not Found")
-                .message(messageService.getMessage("auth.user.not.found"))
-                .errorCode("AUTH_002")
-                .code(1001)
-                .build();
+    public ResponseEntity<ResponseData<Object>> handleUsernameNotFoundException(UsernameNotFoundException ex) {
+        ResponseData<Object> responseData = ResponseData.error(
+            messageService.getMessage("auth.user.not.found"),
+            "AUTH_002",
+            1001
+        );
 
         log.error("User not found: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseData);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .error("Runtime Error")
-                .message(ex.getMessage())
-                .errorCode("RUNTIME_001")
-                .code(8000)
-                .build();
+    public ResponseEntity<ResponseData<Object>> handleRuntimeException(RuntimeException ex) {
+        ResponseData<Object> responseData = ResponseData.error(
+            ex.getMessage(),
+            "RUNTIME_001",
+            8000
+        );
 
         log.error("Runtime error: {}", ex.getMessage());
-        return ResponseEntity.badRequest().body(errorResponse);
+        return ResponseEntity.badRequest().body(responseData);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .error("Internal Server Error")
-                .message(messageService.getMessage("system.internal.error"))
-                .errorCode("SYS_001")
-                .code(9000)
-                .build();
+    public ResponseEntity<ResponseData<Object>> handleGenericException(Exception ex) {
+        ResponseData<Object> responseData = ResponseData.error(
+            messageService.getMessage("system.internal.error"),
+            "SYS_001",
+            9000
+        ).setDetails(ex.getMessage());
 
         log.error("Unexpected error: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(responseData);
     }
 }
