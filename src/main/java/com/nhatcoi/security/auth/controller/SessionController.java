@@ -4,9 +4,10 @@ import com.nhatcoi.security.auth.entity.RefreshToken;
 import com.nhatcoi.security.auth.entity.User;
 import com.nhatcoi.security.auth.repository.UserRepository;
 import com.nhatcoi.security.auth.service.RefreshTokenService;
+import com.nhatcoi.security.common.dto.ResponseData;
 import com.nhatcoi.security.common.exception.AuthenticationException;
 import com.nhatcoi.security.common.exception.ErrorCode;
-import com.nhatcoi.security.common.service.MessageService;
+import com.nhatcoi.security.common.service.ResponseDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +27,10 @@ public class SessionController {
 
     private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
-    private final MessageService messageService;
+    private final ResponseDataService responseDataService;
 
     @GetMapping("/my-sessions")
-    public ResponseEntity<Map<String, Object>> getMySessions() {
+    public ResponseEntity<ResponseData<Object>> getMySessions() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
         
@@ -38,10 +39,9 @@ public class SessionController {
 
         List<RefreshToken> sessions = refreshTokenService.getUserActiveSessions(user);
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("totalSessions", sessions.size());
-        response.put("sessions", sessions.stream().map(session -> {
+        Map<String, Object> sessionData = new HashMap<>();
+        sessionData.put("totalSessions", sessions.size());
+        sessionData.put("sessions", sessions.stream().map(session -> {
             Map<String, Object> sessionMap = new HashMap<>();
             sessionMap.put("id", session.getId());
             sessionMap.put("familyId", session.getFamilyId());
@@ -53,11 +53,12 @@ public class SessionController {
             return sessionMap;
         }).toList());
         
-        return ResponseEntity.ok(response);
+        ResponseData<Object> result = ResponseData.success(sessionData);
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/revoke-family/{familyId}")
-    public ResponseEntity<Map<String, Object>> revokeSessionFamily(@PathVariable String familyId) {
+    public ResponseEntity<ResponseData<Object>> revokeSessionFamily(@PathVariable String familyId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
         
@@ -70,24 +71,19 @@ public class SessionController {
                 .anyMatch(session -> session.getFamilyId().equals(familyId));
 
         if (!isOwner) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("success", false);
-            error.put("message", messageService.getMessage("permission.access.denied"));
+            ResponseData<Object> error = responseDataService.error("permission.access.denied");
             return ResponseEntity.badRequest().body(error);
         }
 
         refreshTokenService.revokeTokenFamily(familyId);
         log.info("User {} đã thu hồi session family: {}", userEmail, familyId);
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", messageService.getMessage("success.session.revoke"));
-        
-        return ResponseEntity.ok(response);
+        ResponseData<Object> result = responseDataService.success("success.session.revoke");
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/revoke-all")
-    public ResponseEntity<Map<String, Object>> revokeAllMySessions() {
+    public ResponseEntity<ResponseData<Object>> revokeAllMySessions() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
         
@@ -97,10 +93,7 @@ public class SessionController {
         refreshTokenService.revokeAllUserTokens(user);
         log.info("User {} đã thu hồi tất cả sessions", userEmail);
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", messageService.getMessage("success.session.revoke.all"));
-        
-        return ResponseEntity.ok(response);
+        ResponseData<Object> result = responseDataService.success("success.session.revoke.all");
+        return ResponseEntity.ok(result);
     }
 }
